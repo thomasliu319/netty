@@ -131,6 +131,9 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             }
         }
 
+        /**
+         * 实现的read方法
+         */
         @Override
         public final void read() {
             final ChannelConfig config = config();

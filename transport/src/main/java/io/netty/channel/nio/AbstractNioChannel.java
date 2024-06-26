@@ -50,8 +50,13 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     private static final InternalLogger logger =
             InternalLoggerFactory.getInstance(AbstractNioChannel.class);
 
+    //该抽象类是serversocketchannel和socketchannel的公共父类
     private final SelectableChannel ch;
+
+    //channel要关注的事件
     protected final int readInterestOp;
+
+    //channel注册到selector后返回的key
     volatile SelectionKey selectionKey;
     boolean readPending;
     private final Runnable clearReadPendingRunnable = new Runnable() {
@@ -78,12 +83,16 @@ public abstract class AbstractNioChannel extends AbstractChannel {
      */
     protected AbstractNioChannel(Channel parent, SelectableChannel ch, int readInterestOp) {
         super(parent);
+        //这里把java的原生channel赋值给该成员变量了
         this.ch = ch;
+        //服务端感兴趣的事件也被赋值了
         this.readInterestOp = readInterestOp;
         try {
+            //设置服务端channel为非阻塞模式
             ch.configureBlocking(false);
         } catch (IOException e) {
             try {
+                //有异常直接关闭channel
                 ch.close();
             } catch (IOException e2) {
                 logger.warn(
@@ -104,10 +113,18 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         return (NioUnsafe) super.unsafe();
     }
 
+    /**
+     * 返回java原生channel
+     * @return
+     */
     protected SelectableChannel javaChannel() {
         return ch;
     }
 
+    /**
+     * 得到channel绑定的单线程执行器，NioEventLoop就是一个单线程执行器
+     * @return
+     */
     @Override
     public NioEventLoop eventLoop() {
         return (NioEventLoop) super.eventLoop();
@@ -377,11 +394,21 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         return loop instanceof NioEventLoop;
     }
 
+
+    /**
+     * 这里就为大家解决了为什么之前那个register0方法没有参数
+     * 在下面这个方法中，javaChannel返回的是java的原生channel
+     * 一个channel绑定一个单线程执行器，也就是NioEventLoop，而NioEventLoop恰好可以得到
+     * 其内部的selector。调用父类的eventLoop()方法，就可以得到该channel绑定的NioEventLoop
+     * @throws Exception
+     */
     @Override
     protected void doRegister() throws Exception {
         boolean selected = false;
         for (;;) {
             try {
+                //在这里把channel注册到单线程执行器中的selector上，注意这里的第三个参数this，这意味着channel注册的时候，把自身，也就是nio类的channel
+                //当作附件放到key上了，之后会用到这个
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {
@@ -404,18 +431,26 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         eventLoop().cancel(selectionKey());
     }
 
+    /**
+     * 给channel设置感兴趣的事件
+     * @throws Exception
+     */
     @Override
     protected void doBeginRead() throws Exception {
         // Channel.read() or ChannelHandlerContext.read() was called
         final SelectionKey selectionKey = this.selectionKey;
+        //检查key是否是有效的
         if (!selectionKey.isValid()) {
             return;
         }
 
         readPending = true;
 
+        //还没有设置感兴趣的事件，所以得到的值为0
         final int interestOps = selectionKey.interestOps();
+        //interestOps中并不包含readInterestOp
         if ((interestOps & readInterestOp) == 0) {
+            //设置channel关注的事件，这里仍然是位运算做加减法
             selectionKey.interestOps(interestOps | readInterestOp);
         }
     }

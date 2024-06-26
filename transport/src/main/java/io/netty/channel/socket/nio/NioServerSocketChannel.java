@@ -44,11 +44,14 @@ import java.util.Map;
 /**
  * A {@link io.netty.channel.socket.ServerSocketChannel} implementation which uses
  * NIO selector based implementation to accept new connections.
+ * 对serversocketchannel做了一层包装，同时也因为channel接口和抽象类的引入，终于可以使NioEventLoop和channel解耦了
  */
 public class NioServerSocketChannel extends AbstractNioMessageChannel
                              implements io.netty.channel.socket.ServerSocketChannel {
 
     private static final ChannelMetadata METADATA = new ChannelMetadata(false, 16);
+
+    //在无参构造器被调用的时候，该成员变量就被创建了
     private static final SelectorProvider DEFAULT_SELECTOR_PROVIDER = SelectorProvider.provider();
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(NioServerSocketChannel.class);
@@ -70,6 +73,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
 
     /**
      * Create a new instance
+     * 无参构造，当调用该构造器的时候，会调用到静态方法newSocket，返回一个ServerSocketChannel
      */
     public NioServerSocketChannel() {
         this(DEFAULT_SELECTOR_PROVIDER);
@@ -77,6 +81,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
 
     /**
      * Create a new instance using the given {@link SelectorProvider}.
+     * 创建的为NioServerSocketChannel时，没有父类channel，SelectionKey.OP_ACCEPT是服务端channel的关注事件
      */
     public NioServerSocketChannel(SelectorProvider provider) {
         this(provider, null);
@@ -149,12 +154,20 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         javaChannel().close();
     }
 
+    /**
+     * 该方法是服务端channel接收连接的方法
+     * @param buf
+     * @return
+     * @throws Exception
+     */
     @Override
     protected int doReadMessages(List<Object> buf) throws Exception {
+        //有连接进来，创建出java原生的客户端channel
         SocketChannel ch = SocketUtils.accept(javaChannel());
 
         try {
             if (ch != null) {
+                //创建niosocketchannel
                 buf.add(new NioSocketChannel(this, ch));
                 return 1;
             }

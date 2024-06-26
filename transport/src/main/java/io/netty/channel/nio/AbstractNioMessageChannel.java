@@ -61,8 +61,12 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
 
     private final class NioMessageUnsafe extends AbstractNioUnsafe {
 
+        //存放接收到的客户端连接的list
         private final List<Object> readBuf = new ArrayList<Object>();
 
+        /**
+         * 实现的read方法，在该方法内接收客户端的连接
+         */
         @Override
         public void read() {
             assert eventLoop().inEventLoop();
@@ -76,7 +80,9 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             try {
                 try {
                     do {
+                        //接收客户端的连接，存放在集合中
                         int localRead = doReadMessages(readBuf);
+                        //返回值为0表示没有连接，直接退出即可
                         if (localRead == 0) {
                             break;
                         }
@@ -93,9 +99,11 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
 
                 int size = readBuf.size();
                 for (int i = 0; i < size; i ++) {
+                    //把每一个客户端的channel注册到工作线程上，这里得不到workgroup
                     readPending = false;
                     pipeline.fireChannelRead(readBuf.get(i));
                 }
+                //消除集合
                 readBuf.clear();
                 allocHandle.readComplete();
                 pipeline.fireChannelReadComplete();

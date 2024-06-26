@@ -296,6 +296,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     /**
      * @return {@code true} if at least one scheduled task was executed.
      */
+
     private boolean executeExpiredScheduledTasks() {
         if (scheduledTaskQueue == null || scheduledTaskQueue.isEmpty()) {
             return false;

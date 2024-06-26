@@ -43,6 +43,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractChannel.class);
 
+    /**
+     * @Author: thomasliu319@gmail.com
+     * @Date: 2024/06/25 14:10
+     * @Description:当创建的是客户端channel时，parent为serversocketchannel
+     * 如果创建的为服务端channel，parent则为null
+     */
     private final Channel parent;
     private final ChannelId id;
     private final Unsafe unsafe;
@@ -52,6 +58,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     private volatile SocketAddress localAddress;
     private volatile SocketAddress remoteAddress;
+
+    /**
+     * @Author: thomasliu319@gmail.com
+     *  @Date: 2024/06/25 14:11
+     * @Description:每一个channel都要绑定到一个eventloop上
+     */
     private volatile EventLoop eventLoop;
     private volatile boolean registered;
     private boolean closeInitiated;
@@ -156,6 +168,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         return config().getAllocator();
     }
 
+    /**
+     * 这个就是得到channel绑定的单线程执行器的方法
+     * @return
+     */
     @Override
     public EventLoop eventLoop() {
         EventLoop eventLoop = this.eventLoop;
@@ -473,12 +489,15 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
+            //在这里就把channel绑定的单线程执行器属性给赋值了
             AbstractChannel.this.eventLoop = eventLoop;
 
+            //接下来就是之前写过的常规逻辑
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
                 try {
+                    //如果调用该放的线程不是netty的线程，就封装成任务由线程执行器来执行
                     eventLoop.execute(new Runnable() {
                         @Override
                         public void run() {
@@ -504,6 +523,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     return;
                 }
                 boolean firstRegistration = neverRegistered;
+                //真正的注册方法
                 doRegister();
                 neverRegistered = false;
                 registered = true;
@@ -524,6 +544,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         // again so that we process inbound data.
                         //
                         // See https://github.com/netty/netty/issues/4805
+                        //在这里channel注册感兴趣事件
                         beginRead();
                     }
                 }
@@ -1073,6 +1094,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
      *
      * Sub-classes may override this method
      */
+    //在很多框架中，有一个规定，那就是真正干事的方法都是do开头的
     protected void doRegister() throws Exception {
         // NOOP
     }

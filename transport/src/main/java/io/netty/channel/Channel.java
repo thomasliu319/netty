@@ -84,6 +84,9 @@ public interface Channel extends AttributeMap, ChannelOutboundInvoker, Comparabl
     /**
      * Return the {@link EventLoop} this {@link Channel} was registered to.
      */
+    //该方法很重要，我们都知道，一个selector可以注册多个channel，但是一个channel只能对应
+    //一个selector，一个selector对应着一个单线程执行器，所以一个channel就会对应一个单线程执行器
+    //该方法就是用来得到该channel对应的单线程执行器
     EventLoop eventLoop();
 
     /**

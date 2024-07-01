@@ -96,9 +96,12 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
 
     /**
      * Create a new instance using the given {@link ServerSocketChannel}.
+     * 在构造器中创建了服务端channel的配置类对象
      */
     public NioServerSocketChannel(ServerSocketChannel channel) {
+        //创建的为NioServerSocketChannel时，没有父类channel，SelectionKey.OP_ACCEPT是服务端channel的关注事件
         super(null, channel, SelectionKey.OP_ACCEPT);
+        //NioServerSocketChannel的配置类
         config = new NioServerSocketChannelConfig(this, javaChannel().socket());
     }
 
@@ -142,7 +145,13 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
     @SuppressJava6Requirement(reason = "Usage guarded by java version check")
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
+        //这里会判断当前的java版本是否为7以上
+        //如果用户设置了backlog参数，config.getBacklog()得到了就是用户设置的option中backlog参数的值
+        //如果用户没有设置，点进去看源码最后发现
+        //该值会在NetUtil的静态代码块中被赋值，windows环境下值为200
+        //linux环境下默认为128。Backlog可以设置全连接队列的大小
         if (PlatformDependent.javaVersion() >= 7) {
+            //这里就是Java原生的bind方法，逻辑上面我们已经讲过了
             javaChannel().bind(localAddress, config.getBacklog());
         } else {
             javaChannel().socket().bind(localAddress, config.getBacklog());

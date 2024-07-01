@@ -28,6 +28,11 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
  */
 public class DefaultAttributeMap implements AttributeMap {
 
+    /**
+     * @Author: thomasliu319@gmail.com
+     * @Description:原子更新器，这个更新器更新的是map的value的值，在这里，原子更新器是为了解决map添加数据时的并发问题。在hashmap中
+     * 哈希桶是普通的数组，而在这个map中，哈希桶为一个原子引用数组。
+     */
     private static final AtomicReferenceFieldUpdater<DefaultAttributeMap, DefaultAttribute[]> ATTRIBUTES_UPDATER =
             AtomicReferenceFieldUpdater.newUpdater(DefaultAttributeMap.class, DefaultAttribute[].class, "attributes");
     private static final DefaultAttribute[] EMPTY_ATTRIBUTES = new DefaultAttribute[0];
@@ -180,6 +185,10 @@ public class DefaultAttributeMap implements AttributeMap {
 
         @Override
         public T setIfAbsent(T value) {
+            //原子引用类用cas把要存储的value存储到类中，这里可以看到
+            //该方法使用了cas来给AtomicReference中的value属性赋值
+            //但是只会在value没有被赋值的情况下赋值成功，并且只会赋值一次
+            //如果多个线程都给这个value赋值，其他线程则赋值失败，解决了并发问题
             while (!compareAndSet(null, value)) {
                 T old = get();
                 if (old != null) {
@@ -203,7 +212,9 @@ public class DefaultAttributeMap implements AttributeMap {
         @Override
         public void remove() {
             final DefaultAttributeMap attributeMap = this.attributeMap;
+            //表示节点已删除
             final boolean removed = attributeMap != null && MAP_UPDATER.compareAndSet(this, attributeMap, null);
+            //既然DefaultAttribute都删除了，那么DefaultAttribute中存储的value也该置为null了
             set(null);
             if (removed) {
                 attributeMap.removeAttributeIfMatch(key, this);

@@ -33,15 +33,18 @@ import java.net.NetworkInterface;
  */
 public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
 
+    //这里就是专门为ChannelOption对象创建的常量池
     private static final ConstantPool<ChannelOption<Object>> pool = new ConstantPool<ChannelOption<Object>>() {
         @Override
         protected ChannelOption<Object> newConstant(int id, String name) {
+            //ConstantPool抽象类中的抽象方法，在这里得到了实现
             return new ChannelOption<Object>(id, name);
         }
     };
 
     /**
      * Returns the {@link ChannelOption} of the specified name.
+     * 创建常量的方法
      */
     @SuppressWarnings("unchecked")
     public static <T> ChannelOption<T> valueOf(String name) {
@@ -58,6 +61,7 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
 
     /**
      * Returns {@code true} if a {@link ChannelOption} exists for the given {@code name}.
+     * 判断常量池中是否存在该常量
      */
     public static boolean exists(String name) {
         return pool.exists(name);
@@ -108,6 +112,7 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
     /**
      * If {@code true} then the {@link Channel} is closed automatically and immediately on write failure.
      * The default value is {@code true}.
+     * 这几个常量就是我们体现为用户创建好的
      */
     public static final ChannelOption<Boolean> AUTO_CLOSE = valueOf("AUTO_CLOSE");
 
@@ -146,6 +151,7 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
 
     /**
      * Creates a new {@link ChannelOption} with the specified unique {@code name}.
+     * 创建常量的构造器，是私有的，都是通过外部方法valueOf来创建常量的
      */
     private ChannelOption(int id, String name) {
         super(id, name);
@@ -159,6 +165,7 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
     /**
      * Validate the value which is set for the {@link ChannelOption}. Sub-classes
      * may override this for special checks.
+     * 判断value非空
      */
     public void validate(T value) {
         ObjectUtil.checkNotNull(value, "value");
